@@ -23,7 +23,7 @@ public class AsyncWritesServerAsyncTrueApp extends ConfigureClient {
 
 		if (args.length != 10) {
 			System.out
-					.println("java -jar AsyncWritesServerAsyncTrueApp <ESHOST_NAME>"
+					.println("Usage:\njava -jar AsyncWritesServerAsyncTrueApp <ESHOST_NAME>"
 							+ " <ES_PORTNUM> <ES_CLUSERNAME> <indexNamePrefix> "
 							+ "<type_name> <logFileName> <numOfIndexes> <number_of_documents> <num_of_fields> <num_of_replicas>");
 

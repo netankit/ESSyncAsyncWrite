@@ -22,7 +22,7 @@ public class AsyncWritesApp extends ConfigureClient {
 
 		if (args.length != 10) {
 			System.out
-					.println("java -jar AsyncWritesApp <ESHOST_NAME>"
+					.println("Usage:\njava -jar AsyncWritesApp <ESHOST_NAME>"
 							+ " <ES_PORTNUM> <ES_CLUSERNAME> <indexNamePrefix> "
 							+ "<type_name> <logFileName> <numOfIndexes> <number_of_documents> <num_of_fields> <num_of_replicas>");
 
