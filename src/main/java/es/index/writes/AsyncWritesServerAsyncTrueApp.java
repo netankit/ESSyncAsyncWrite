@@ -69,18 +69,21 @@ public class AsyncWritesServerAsyncTrueApp extends ConfigureClient {
 						jsonObject.put(RandomStringUtils.randomAlphabetic(6),
 								RandomStringUtils.randomAlphanumeric(5));
 					}
-
-					client.admin()
-							.indices()
-							.prepareCreate(
-									indexNamePrefix + String.valueOf(indexId)
-											+ "r" + String.valueOf(repId))
-							.setSettings(
-									ImmutableSettings.settingsBuilder()
-											.put("number_of_shards", 5)
-											.put("number_of_replicas", repId))
-							.execute().actionGet();
-
+					if (docId == 1) {
+						client.admin()
+								.indices()
+								.prepareCreate(
+										indexNamePrefix
+												+ String.valueOf(indexId) + "r"
+												+ String.valueOf(repId))
+								.setSettings(
+										ImmutableSettings
+												.settingsBuilder()
+												.put("number_of_shards", 5)
+												.put("number_of_replicas",
+														repId)).execute()
+								.actionGet();
+					}
 					// Asynchronous Indexing
 					@SuppressWarnings("unused")
 					ListenableActionFuture<IndexResponse> response = client

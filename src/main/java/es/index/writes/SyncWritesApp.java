@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 import org.apache.commons.lang.RandomStringUtils;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -21,7 +22,7 @@ public class SyncWritesApp extends ConfigureClient {
 
 		if (args.length != 10) {
 			System.out
-					.println("java -jar SyncWritesApp <ESHOST_NAME>"
+					.println("Usage:\njava -jar SyncWritesApp <ESHOST_NAME>"
 							+ " <ES_PORTNUM> <ES_CLUSERNAME> <indexNamePrefix> "
 							+ "<type_name> <logFileName> <numOfIndexes> <number_of_documents> <num_of_fields> <num_of_replicas>");
 
@@ -53,27 +54,35 @@ public class SyncWritesApp extends ConfigureClient {
 			for (int indexId = 1; indexId <= numOfIndexes; indexId++) {
 				log.info("\n\nIndex Name: " + indexNamePrefix
 						+ String.valueOf(indexId) + "r" + String.valueOf(repId));
+
 				long startTimeIndivIndex = System.currentTimeMillis();
 
 				for (int docId = 1; docId <= numOfDocuments; docId++) {
 					long startTimeIndivDoc = System.currentTimeMillis();
+
 					/* Populates the Map "jsonObject" for indexing */
 					Map<String, Object> jsonObject = new HashMap<String, Object>();
 					for (int i = 1; i <= numOfFields; i++) {
 						jsonObject.put(RandomStringUtils.randomAlphabetic(6),
 								RandomStringUtils.randomAlphanumeric(5));
 					}
-					client.admin()
-							.indices()
-							.prepareCreate(
-									indexNamePrefix + String.valueOf(indexId)
-											+ "r" + String.valueOf(repId))
-							.setSettings(
-									ImmutableSettings.settingsBuilder()
-											.put("number_of_shards", 5)
-											.put("number_of_replicas", "1"))
-							.execute().actionGet();
+					if (docId == 1) {
+						CreateIndexRequestBuilder indexRequestBuilder = client
+								.admin()
+								.indices()
+								.prepareCreate(
+										indexNamePrefix
+												+ String.valueOf(indexId) + "r"
+												+ String.valueOf(repId))
+								.setSettings(
+										ImmutableSettings
+												.settingsBuilder()
+												.put("number_of_shards", 5)
+												.put("number_of_replicas",
+														repId));
 
+						indexRequestBuilder.execute().actionGet();
+					}
 					@SuppressWarnings("unused")
 					IndexResponse response = client
 							.prepareIndex(
@@ -116,5 +125,4 @@ public class SyncWritesApp extends ConfigureClient {
 		// Closing Client
 		closeClient(client);
 	}
-
 }
