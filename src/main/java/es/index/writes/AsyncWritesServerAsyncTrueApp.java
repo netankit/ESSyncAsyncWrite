@@ -9,10 +9,11 @@ import java.util.logging.Logger;
 import org.apache.commons.lang.RandomStringUtils;
 import org.elasticsearch.action.ListenableActionFuture;
 import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.support.replication.ReplicationType;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.ImmutableSettings;
 
-public class AsyncWritesApp extends ConfigureClient {
+public class AsyncWritesServerAsyncTrueApp extends ConfigureClient {
 
 	public static void main(String[] args) throws SecurityException,
 			IOException {
@@ -22,7 +23,7 @@ public class AsyncWritesApp extends ConfigureClient {
 
 		if (args.length != 10) {
 			System.out
-					.println("java -jar AsyncWritesApp <ESHOST_NAME>"
+					.println("java -jar AsyncWritesServerAsyncTrueApp <ESHOST_NAME>"
 							+ " <ES_PORTNUM> <ES_CLUSERNAME> <indexNamePrefix> "
 							+ "<type_name> <logFileName> <numOfIndexes> <number_of_documents> <num_of_fields> <num_of_replicas>");
 
@@ -39,7 +40,10 @@ public class AsyncWritesApp extends ConfigureClient {
 		int numOfFields = Integer.parseInt(args[8]);
 		int numOfReplicas = Integer.parseInt(args[9]);
 
-		Logger log = setupLog(logFileName, AsyncWritesApp.class.getName());
+		ReplicationType asyncReplicationType = ReplicationType.ASYNC;
+
+		Logger log = setupLog(logFileName,
+				AsyncWritesServerAsyncTrueApp.class.getName());
 
 		/*
 		 * ES node and client initialization.
@@ -84,6 +88,7 @@ public class AsyncWritesApp extends ConfigureClient {
 									indexNamePrefix + String.valueOf(indexId)
 											+ "r" + String.valueOf(repId),
 									typeName, String.valueOf(docId))
+							.setReplicationType(asyncReplicationType)
 							.setSource(jsonObject).execute();
 
 					long endTimeIndivDoc = System.currentTimeMillis();
