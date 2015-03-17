@@ -102,8 +102,8 @@ public class AsyncWritesApp extends ConfigureClient {
 						- startTimeIndivIndex;
 				indexTimeIndexes.add(totaltimeIndivIndex);
 
-			}
-		}
+			} // End of Index Loop.
+		} // End of Replica Loop.
 		long endTimeAllIndex = System.currentTimeMillis();
 		long totalTimeAllIndex = (endTimeAllIndex - startTimeAllIndex);
 
