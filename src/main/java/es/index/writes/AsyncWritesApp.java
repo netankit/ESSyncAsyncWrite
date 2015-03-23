@@ -15,7 +15,7 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 public class AsyncWritesApp extends ConfigureClient {
 
 	public static void main(String[] args) throws SecurityException,
-			IOException {
+			IOException, InterruptedException {
 		/*
 		 * Command Line arguments
 		 */
@@ -37,7 +37,8 @@ public class AsyncWritesApp extends ConfigureClient {
 		int numOfIndexes = Integer.parseInt(args[6]);
 		int numOfDocuments = Integer.parseInt(args[7]);
 		int numOfFields = Integer.parseInt(args[8]);
-		int numOfReplicas = Integer.parseInt(args[9]);
+		int repId = Integer.parseInt(args[9]);
+		// int numOfReplicas;
 
 		Logger log = setupLog(logFileName, AsyncWritesApp.class.getName());
 
@@ -50,60 +51,75 @@ public class AsyncWritesApp extends ConfigureClient {
 
 		long startTimeAllIndex = System.currentTimeMillis();
 		ArrayList<Long> indexTimeIndexes = new ArrayList<Long>();
-		for (int repId = 1; repId <= numOfReplicas; repId++) {
-			for (int indexId = 1; indexId <= numOfIndexes; indexId++) {
-				log.info("\n\nIndex Name: " + indexNamePrefix
-						+ String.valueOf(indexId) + "r" + String.valueOf(repId));
 
-				long startTimeIndivIndex = System.currentTimeMillis();
+		// for (int repId = 1; repId <= numOfReplicas; repId++) {
+		for (int indexId = 1; indexId <= numOfIndexes; indexId++) {
+			log.info("\n\nIndex Name: " + indexNamePrefix
+					+ String.valueOf(indexId) + "r" + String.valueOf(repId));
 
-				for (int docId = 1; docId <= numOfDocuments; docId++) {
-					long startTimeIndivDoc = System.currentTimeMillis();
-					/* Populates the Map "jsonObject" for indexing */
-					Map<String, Object> jsonObject = new HashMap<String, Object>();
-					for (int i = 1; i <= numOfFields; i++) {
-						jsonObject.put(RandomStringUtils.randomAlphabetic(6),
-								RandomStringUtils.randomAlphanumeric(5));
-					}
-					if (docId == 1) {
-						client.admin()
-								.indices()
-								.prepareCreate(
-										indexNamePrefix
-												+ String.valueOf(indexId) + "r"
-												+ String.valueOf(repId))
-								.setSettings(
-										ImmutableSettings
-												.settingsBuilder()
-												.put("number_of_shards", 5)
-												.put("number_of_replicas",
-														repId)).execute()
-								.actionGet();
-					}
+			long startTimeIndivIndex = System.currentTimeMillis();
 
-					// Asynchronous Indexing
-					@SuppressWarnings("unused")
-					ListenableActionFuture<IndexResponse> response = client
-							.prepareIndex(
+			for (int docId = 1; docId <= numOfDocuments; docId++) {
+				long startTimeIndivDoc = System.currentTimeMillis();
+				/* Populates the Map "jsonObject" for indexing */
+				Map<String, Object> jsonObject = new HashMap<String, Object>();
+				for (int i = 1; i <= numOfFields; i++) {
+					jsonObject.put(RandomStringUtils.randomAlphabetic(6),
+							RandomStringUtils.randomAlphanumeric(5));
+				}
+				/*
+				 * For the first document we create the index on the es server
+				 * and configure its settings of the number of shards and
+				 * replicas.
+				 */
+
+				if (docId == 1) {
+					client.admin()
+							.indices()
+							.prepareCreate(
 									indexNamePrefix + String.valueOf(indexId)
-											+ "r" + String.valueOf(repId),
-									typeName, String.valueOf(docId))
-							.setSource(jsonObject).execute();
+											+ "r" + String.valueOf(repId))
+							.setSettings(
+									ImmutableSettings.settingsBuilder()
+											.put("number_of_shards", 5)
+											.put("number_of_replicas", repId))
+							.execute().actionGet();
+					Thread.sleep(360000);
 
-					long endTimeIndivDoc = System.currentTimeMillis();
-					long totalTimeIndivDoc = (endTimeIndivDoc - startTimeIndivDoc);
-					log.info("Total Indexing Time (ms) for index #" + indexId
-							+ ", document #" + docId + " : "
-							+ totalTimeIndivDoc);
 				}
 
-				long endTimeIndivIndex = System.currentTimeMillis();
-				long totaltimeIndivIndex = endTimeIndivIndex
-						- startTimeIndivIndex;
-				indexTimeIndexes.add(totaltimeIndivIndex);
+				/* Asynchronous Indexing on the index just created. */
+				@SuppressWarnings("unused")
+				ListenableActionFuture<IndexResponse> response = client
+						.prepareIndex(
+								indexNamePrefix + String.valueOf(indexId) + "r"
+										+ String.valueOf(repId), typeName,
+								String.valueOf(docId)).setSource(jsonObject)
+						.execute();
 
-			} // End of Index Loop.
-		} // End of Replica Loop.
+				/* Indexes the data into a pre-created index named "new2" */
+
+				// ListenableActionFuture<IndexResponse> response = client
+				// .prepareIndex("new2", typeName, String.valueOf(docId))
+				// .setSource(jsonObject).execute();
+				//
+
+				Thread.sleep(1);
+
+				long endTimeIndivDoc = System.currentTimeMillis();
+				long totalTimeIndivDoc = (endTimeIndivDoc - startTimeIndivDoc);
+				log.info("Total Indexing Time (ms) for index #" + indexId
+						+ ", document #" + docId + " : " + totalTimeIndivDoc);
+			}
+
+			long endTimeIndivIndex = System.currentTimeMillis();
+			long totaltimeIndivIndex = endTimeIndivIndex - startTimeIndivIndex;
+			indexTimeIndexes.add(totaltimeIndivIndex);
+
+		} // End of Index Loop.
+			// Thread.sleep(29000); // Allows time towards re-allocation of
+			// shards.
+		// } // End of Replica Loop.
 		long endTimeAllIndex = System.currentTimeMillis();
 		long totalTimeAllIndex = (endTimeAllIndex - startTimeAllIndex);
 
@@ -111,7 +127,6 @@ public class AsyncWritesApp extends ConfigureClient {
 				+ totalTimeAllIndex);
 
 		/* Logging Index Level Time */
-
 		log.info("### INDEX LEVEL ###");
 		long finalSumIndexTime = 0;
 		for (int i = 0; i < indexTimeIndexes.size(); i++) {
@@ -122,7 +137,12 @@ public class AsyncWritesApp extends ConfigureClient {
 
 		log.info("Total time as Sum of Indexing all Indexes:  "
 				+ finalSumIndexTime);
+
+		// Time to wait to allow the client to finish indexing before the handle
+		// is safely closed.
+		Thread.sleep(300000);
 		// Closing Client
 		closeClient(client);
+		log.info("Task Completed!");
 	}
 }

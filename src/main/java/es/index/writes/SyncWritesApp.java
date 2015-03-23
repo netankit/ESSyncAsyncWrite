@@ -37,7 +37,8 @@ public class SyncWritesApp extends ConfigureClient {
 		int numOfIndexes = Integer.parseInt(args[6]);
 		int numOfDocuments = Integer.parseInt(args[7]);
 		int numOfFields = Integer.parseInt(args[8]);
-		int numOfReplicas = Integer.parseInt(args[9]);
+		int repId = Integer.parseInt(args[9]);
+		// int numOfReplicas;
 
 		Logger log = setupLog(logFileName, SyncWritesApp.class.getName());
 
@@ -50,60 +51,55 @@ public class SyncWritesApp extends ConfigureClient {
 
 		long startTimeAllIndex = System.currentTimeMillis();
 		ArrayList<Long> indexTimeIndexes = new ArrayList<Long>();
-		for (int repId = 1; repId <= numOfReplicas; repId++) {
-			for (int indexId = 1; indexId <= numOfIndexes; indexId++) {
-				log.info("\n\nIndex Name: " + indexNamePrefix
-						+ String.valueOf(indexId) + "r" + String.valueOf(repId));
+		// for (int repId = 1; repId <= numOfReplicas; repId++) {
+		for (int indexId = 1; indexId <= numOfIndexes; indexId++) {
+			log.info("\n\nIndex Name: " + indexNamePrefix
+					+ String.valueOf(indexId) + "r" + String.valueOf(repId));
 
-				long startTimeIndivIndex = System.currentTimeMillis();
+			long startTimeIndivIndex = System.currentTimeMillis();
 
-				for (int docId = 1; docId <= numOfDocuments; docId++) {
-					long startTimeIndivDoc = System.currentTimeMillis();
+			for (int docId = 1; docId <= numOfDocuments; docId++) {
+				long startTimeIndivDoc = System.currentTimeMillis();
 
-					/* Populates the Map "jsonObject" for indexing */
-					Map<String, Object> jsonObject = new HashMap<String, Object>();
-					for (int i = 1; i <= numOfFields; i++) {
-						jsonObject.put(RandomStringUtils.randomAlphabetic(6),
-								RandomStringUtils.randomAlphanumeric(5));
-					}
-					if (docId == 1) {
-						CreateIndexRequestBuilder indexRequestBuilder = client
-								.admin()
-								.indices()
-								.prepareCreate(
-										indexNamePrefix
-												+ String.valueOf(indexId) + "r"
-												+ String.valueOf(repId))
-								.setSettings(
-										ImmutableSettings
-												.settingsBuilder()
-												.put("number_of_shards", 5)
-												.put("number_of_replicas",
-														repId));
-
-						indexRequestBuilder.execute().actionGet();
-					}
-					@SuppressWarnings("unused")
-					IndexResponse response = client
-							.prepareIndex(
-									indexNamePrefix + String.valueOf(indexId)
-											+ "r" + String.valueOf(repId),
-									typeName, String.valueOf(docId))
-							.setSource(jsonObject).execute().actionGet();
-					long endTimeIndivDoc = System.currentTimeMillis();
-					long totalTimeIndivDoc = (endTimeIndivDoc - startTimeIndivDoc);
-					log.info("Total Indexing Time (ms) for index #" + indexId
-							+ ", document #" + docId + " : "
-							+ totalTimeIndivDoc);
+				/* Populates the Map "jsonObject" for indexing */
+				Map<String, Object> jsonObject = new HashMap<String, Object>();
+				for (int i = 1; i <= numOfFields; i++) {
+					jsonObject.put(RandomStringUtils.randomAlphabetic(6),
+							RandomStringUtils.randomAlphanumeric(5));
 				}
+				if (docId == 1) {
+					CreateIndexRequestBuilder indexRequestBuilder = client
+							.admin()
+							.indices()
+							.prepareCreate(
+									indexNamePrefix + String.valueOf(indexId)
+											+ "r" + String.valueOf(repId))
+							.setSettings(
+									ImmutableSettings.settingsBuilder()
+											.put("number_of_shards", 5)
+											.put("number_of_replicas", repId));
 
-				long endTimeIndivIndex = System.currentTimeMillis();
-				long totaltimeIndivIndex = endTimeIndivIndex
-						- startTimeIndivIndex;
-				indexTimeIndexes.add(totaltimeIndivIndex);
+					indexRequestBuilder.execute().actionGet();
+				}
+				@SuppressWarnings("unused")
+				IndexResponse response = client
+						.prepareIndex(
+								indexNamePrefix + String.valueOf(indexId) + "r"
+										+ String.valueOf(repId), typeName,
+								String.valueOf(docId)).setSource(jsonObject)
+						.execute().actionGet();
+				long endTimeIndivDoc = System.currentTimeMillis();
+				long totalTimeIndivDoc = (endTimeIndivDoc - startTimeIndivDoc);
+				log.info("Total Indexing Time (ms) for index #" + indexId
+						+ ", document #" + docId + " : " + totalTimeIndivDoc);
+			}
 
-			} // End of Index Loop.
-		} // End of Replica Loop
+			long endTimeIndivIndex = System.currentTimeMillis();
+			long totaltimeIndivIndex = endTimeIndivIndex - startTimeIndivIndex;
+			indexTimeIndexes.add(totaltimeIndivIndex);
+
+		} // End of Index Loop.
+			// } // End of Replica Loop
 		long endTimeAllIndex = System.currentTimeMillis();
 		long totalTimeAllIndex = (endTimeAllIndex - startTimeAllIndex);
 
