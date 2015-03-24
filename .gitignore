@@ -21,3 +21,4 @@ target/
 data/
 *.txt
 *.log
+*.log.1
