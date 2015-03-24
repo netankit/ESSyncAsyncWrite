@@ -11,9 +11,10 @@ import org.elasticsearch.action.ListenableActionFuture;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.NoNodeAvailableException;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.transport.TransportException;
 
-public class AsyncWritesApp extends ConfigureClient {
+public class AsyncWritesFullIndexCreateApp extends ConfigureClient {
 
 	public static void main(String[] args) throws SecurityException,
 			IOException, InterruptedException {
@@ -41,7 +42,8 @@ public class AsyncWritesApp extends ConfigureClient {
 		int repId = Integer.parseInt(args[9]);
 		// int numOfReplicas;
 
-		Logger log = setupLog(logFileName, AsyncWritesApp.class.getName());
+		Logger log = setupLog("new5" + logFileName,
+				AsyncWritesFullIndexCreateApp.class.getName());
 
 		/*
 		 * ES node and client initialization.
@@ -62,45 +64,54 @@ public class AsyncWritesApp extends ConfigureClient {
 
 			for (int docId = 1; docId <= numOfDocuments; docId++) {
 				long startTimeIndivDoc = System.currentTimeMillis();
-
 				/* Populates the Map "jsonObject" for indexing */
 				Map<String, Object> jsonObject = new HashMap<String, Object>();
-
 				for (int i = 1; i <= numOfFields; i++) {
 					jsonObject.put(RandomStringUtils.randomAlphabetic(6),
 							RandomStringUtils.randomAlphanumeric(5));
 				}
-
 				/*
 				 * For the first document we create the index on the es server
 				 * and configure its settings of the number of shards and
 				 * replicas.
 				 */
-				boolean success = false;
-				while (!success) {
-					try {
+				try {
+					if (docId == 1) {
+						client.admin()
+								.indices()
+								.prepareCreate(
+										indexNamePrefix
+												+ String.valueOf(indexId) + "r"
+												+ String.valueOf(repId))
+								.setSettings(
+										ImmutableSettings
+												.settingsBuilder()
+												.put("number_of_shards", 5)
+												.put("number_of_replicas",
+														repId)).execute()
+								.actionGet();
+						Thread.sleep(360000);
 
-						@SuppressWarnings("unused")
-						/*
-						 * Indexes the data into a pre-created index named
-						 * "new2"
-						 */
-						ListenableActionFuture<IndexResponse> response = client
-								.prepareIndex("new2", typeName,
-										String.valueOf(docId))
-								.setSource(jsonObject).execute();
-
-						Thread.sleep(1);
-					} catch (NoNodeAvailableException n) {
-						System.err
-								.println(" No Node Available Exception Raised:"
-										+ n);
-						/* Sleep for 5 seconds to get the node for the next */
-						Thread.sleep(5000);
-
-					} catch (TransportException t) {
-						System.err.println("Transport Exception Raised:" + t);
 					}
+
+					/* Asynchronous Indexing on the index just created. */
+					@SuppressWarnings("unused")
+					ListenableActionFuture<IndexResponse> response = client
+							.prepareIndex(
+									indexNamePrefix + String.valueOf(indexId)
+											+ "r" + String.valueOf(repId),
+									typeName, String.valueOf(docId))
+							.setSource(jsonObject).execute();
+					/* Indexes the data into a pre-created index named "new2" */
+
+					Thread.sleep(1);
+				} catch (NoNodeAvailableException n) {
+					System.err.println(" No Node Available Exception Raised:"
+							+ n);
+					Thread.sleep(5000);
+
+				} catch (TransportException t) {
+					System.err.println("Transport Exception Raised:" + t);
 				}
 				long endTimeIndivDoc = System.currentTimeMillis();
 				long totalTimeIndivDoc = (endTimeIndivDoc - startTimeIndivDoc);
