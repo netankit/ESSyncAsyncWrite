@@ -76,36 +76,36 @@ public class AsyncWritesApp extends ConfigureClient {
 				 * and configure its settings of the number of shards and
 				 * replicas.
 				 */
-				boolean success = false;
-				while (!success) {
-					try {
 
-						@SuppressWarnings("unused")
-						/*
-						 * Indexes the data into a pre-created index named
-						 * "new2"
-						 */
-						ListenableActionFuture<IndexResponse> response = client
-								.prepareIndex("new2", typeName,
-										String.valueOf(docId))
-								.setSource(jsonObject).execute();
+				try {
 
-						Thread.sleep(1);
-					} catch (NoNodeAvailableException n) {
-						System.err
-								.println(" No Node Available Exception Raised:"
-										+ n);
-						/* Sleep for 5 seconds to get the node for the next */
-						Thread.sleep(5000);
+					@SuppressWarnings("unused")
+					/*
+					 * Indexes the data into a pre-created index named "new2"
+					 */
+					ListenableActionFuture<IndexResponse> response = client
+							.prepareIndex("indexgc3", typeName,
+									String.valueOf(docId))
+							.setSource(jsonObject).execute();
 
-					} catch (TransportException t) {
-						System.err.println("Transport Exception Raised:" + t);
-					}
+					// Adding a waiting time of 3 ms after each document gets
+					// indexed
+					Thread.sleep(3);
+				} catch (NoNodeAvailableException n) {
+					System.err.println(" No Node Available Exception Raised:"
+							+ n);
+					/* Sleep for 5 seconds to get the node for the next */
+					Thread.sleep(5000);
+
+				} catch (TransportException t) {
+					System.err.println("Transport Exception Raised:" + t);
 				}
+
 				long endTimeIndivDoc = System.currentTimeMillis();
 				long totalTimeIndivDoc = (endTimeIndivDoc - startTimeIndivDoc);
 				log.info("Total Indexing Time (ms) for index #" + indexId
 						+ ", document #" + docId + " : " + totalTimeIndivDoc);
+
 			}
 
 			long endTimeIndivIndex = System.currentTimeMillis();
@@ -136,7 +136,8 @@ public class AsyncWritesApp extends ConfigureClient {
 
 		// Time to wait to allow the client to finish indexing before the handle
 		// is safely closed.
-		Thread.sleep(300000);
+		log.info("### Indexing Done, waiting for the client to finish operations before closing ###");
+		Thread.sleep(600000);
 		// Closing Client
 		closeClient(client);
 		log.info("Task Completed!");
