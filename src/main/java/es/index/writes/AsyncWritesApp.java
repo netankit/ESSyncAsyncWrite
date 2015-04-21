@@ -55,8 +55,11 @@ public class AsyncWritesApp extends ConfigureClient {
 
 		// for (int repId = 1; repId <= numOfReplicas; repId++) {
 		for (int indexId = 1; indexId <= numOfIndexes; indexId++) {
-			log.info("\n\nIndex Name: " + indexNamePrefix
-					+ String.valueOf(indexId) + "r" + String.valueOf(repId));
+
+			// log.info("\n\nIndex Name: " + indexNamePrefix
+			// + String.valueOf(indexId) + "r" + String.valueOf(repId));
+
+			log.info("\n\nIndex Name: " + indexNamePrefix);
 
 			long startTimeIndivIndex = System.currentTimeMillis();
 
@@ -84,7 +87,7 @@ public class AsyncWritesApp extends ConfigureClient {
 					 * Indexes the data into a pre-created index named "new2"
 					 */
 					ListenableActionFuture<IndexResponse> response = client
-							.prepareIndex("indexgc3", typeName,
+							.prepareIndex(indexNamePrefix, typeName,
 									String.valueOf(docId))
 							.setSource(jsonObject).execute();
 
